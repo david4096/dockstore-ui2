@@ -45,7 +45,7 @@ export class DescriptorTypeCompatService {
    * @param {string} descriptor
    * @memberof LaunchComponent
    */
-  public stringToDescriptorType(descriptorType: string): ToolDescriptor.TypeEnum {
+  public stringToDescriptorType(descriptorType: string): ToolDescriptor.TypeEnum | null {
     if (descriptorType.toUpperCase() === DescriptorTypeEnum.CWL) {
       return ToolDescriptor.TypeEnum.CWL;
     } else if (descriptorType.toUpperCase() === DescriptorTypeEnum.WDL) {
@@ -93,7 +93,8 @@ export class DescriptorTypeCompatService {
       // }
 
       default: {
-        console.error('Unrecognized descriptor type: ' + descriptorType);
+        console.log('Unrecognized descriptor type: ' + descriptorType);
+        return null;
       }
     }
   }
@@ -105,7 +106,7 @@ export class DescriptorTypeCompatService {
    * @returns {string}  Plain type that the TRS accepts
    * @memberof DescriptorTypeCompatService
    */
-  public toolDescriptorTypeEnumToPlainTRS(typeEnum: ToolDescriptor.TypeEnum): string {
+  public toolDescriptorTypeEnumToPlainTRS(typeEnum: ToolDescriptor.TypeEnum | string): string {
     switch (typeEnum) {
       case ToolDescriptor.TypeEnum.WDL:
         return 'PLAIN-WDL';
@@ -116,7 +117,7 @@ export class DescriptorTypeCompatService {
       case ToolDescriptor.TypeEnum.SERVICE:
         return 'PLAIN-SERVICE';
       default:
-        console.error('Unhandled descriptor type: ' + typeEnum);
+        console.log('Unhandled descriptor type: ' + typeEnum);
         return null;
     }
   }
