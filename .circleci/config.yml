@@ -39,14 +39,23 @@ jobs:
               bash -i -c 'npm ci'
             fi
       - run:
+          name: Build
+          command: bash -i -c 'npm run build.prod'
+      - run:
           name: Install cypress dependencies
           command: sudo apt install libgtk2.0-0 -yq
       - run:
           name: Install cypress
           command: bash -i -c 'npm i cypress@4.0.2 --no-save'
       - run:
-          name: Run remote verification test
-          command: bash -i -c 'npm run cypress-remote'
+          name: Run remote verification test against dev
+          command: bash -i -c 'npm run test-dev'
+      - run:
+          name: Run remote verification test against staging
+          command: bash -i -c 'npm run test-staging'
+      - run:
+          name: Run remote verification against prod
+          command: bash -i -c 'npm run test-prod'
   lint_unit_test_coverage:
     working_directory: ~/repo
     docker:
