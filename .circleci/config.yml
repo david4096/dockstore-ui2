@@ -13,6 +13,40 @@ executors:
           POSTGRES_DB: postgres
           POSTGRES_PASSWORD: postgres
 jobs:
+  uptime_monitor:
+    working_directory: ~/repo
+    docker:
+      - image: circleci/buildpack-deps:18.04-browsers
+    steps:
+      - checkout
+      - run:
+          name: Checkout merge commit (PRs only)
+          command: |
+            if [[ -n "${CIRCLE_PULL_REQUEST}" ]]
+            then
+              git fetch origin +refs/pull/${CIRCLE_PULL_REQUEST##*/}/merge:
+              git checkout -qf FETCH_HEAD
+            fi
+      - install_container_dependencies
+      - restore_cache:
+          key: dep-cache-{{ checksum "./package-lock.json" }}
+      - run:
+          name: Install dependencies
+          #Only run 'npm ci' if node_modules was not restored from cache
+          command: |
+            if [ ! -d "./node_modules" ]
+            then
+              bash -i -c 'npm ci'
+            fi
+      - run:
+          name: Install cypress dependencies
+          command: sudo apt install libgtk2.0-0 -yq
+      - run:
+          name: Install cypress
+          command: bash -i -c 'npm i cypress@4.0.2 --no-save'
+      - run:
+          name: Run remote verification test
+          command: bash -i -c 'npm run cypress-remote'
   lint_unit_test_coverage:
     working_directory: ~/repo
     docker:
@@ -42,10 +76,6 @@ jobs:
           key: dep-cache-{{ checksum "./package-lock.json" }}
           paths:
             - ./node_modules
-      - save_cache:
-          key: cypress-cache-{{ checksum "./package-lock.json" }}
-          paths:
-            - ~/.cache
       - run:
           name: Check dependencies
           command: bash -i -c 'npm ls'
@@ -73,8 +103,6 @@ jobs:
     working_directory: ~/repo
     steps:
       - setup_integration_test
-      - restore_cache:
-          key: cypress-cache-{{ checksum "./package-lock.json" }}
       - run:
           name: Test
           command: bash -i -c 'npx cypress run --record --config numTestsKeptInMemory=1 --reporter junit --spec cypress/integration/group1/**/*'
@@ -87,8 +115,6 @@ jobs:
     working_directory: ~/repo
     steps:
       - setup_integration_test
-      - restore_cache:
-          key: cypress-cache-{{ checksum "./package-lock.json" }}
       - run:
           name: Test
           command: bash -i -c 'npx cypress run --record --config numTestsKeptInMemory=1 --reporter junit --spec cypress/integration/group2/**/*'
@@ -101,8 +127,6 @@ jobs:
     working_directory: ~/repo
     steps:
       - setup_integration_test
-      - restore_cache:
-          key: cypress-cache-{{ checksum "./package-lock.json" }}
       - run:
           name: Test
           command: bash -i -c 'npx cypress run --record --config numTestsKeptInMemory=1 --reporter junit --spec cypress/integration/immutableDatabaseTests/**/*'
@@ -183,6 +207,16 @@ workflows:
               only: /.*/
             branches:
               only: /.*/
+  nightly:
+    triggers:
+      - schedule:
+          cron: "5,20,35,50 * * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - uptime_monitor
 commands:
   install_container_dependencies:
     steps:
@@ -220,6 +254,9 @@ commands:
       - run:
           name: Install cypress dependencies
           command: sudo apt install libgtk2.0-0 -yq
+      - run:
+          name: Install cypress
+          command: bash -i -c 'npm i cypress@3.4.1 --no-save'
       - run:
           name: Prepare webservice
           command: bash -i -c 'npm run webservice'
